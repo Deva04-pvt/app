@@ -5,7 +5,7 @@ import uuid
 import requests
 import mimetypes
 
-DOWNLOAD_DIR = "/Users/devanandk/Downloads"
+DOWNLOAD_DIR = "/tmp/downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 def download_document(url: str) -> str:

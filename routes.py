@@ -136,17 +136,14 @@ class BulkQARequest(BaseModel):
     questions: List[str]
     top_k: int = 5
 
-@router.post("/bulk-answer")
+@router.post("/run")
 async def bulk_answer_endpoint(payload: BulkQARequest):
     try:
         local_path = download_document(payload.documents)
-
         full_text = extract_text(local_path)
         chunks = split_text(full_text)
-
         embeddings = get_embeddings_gemini(chunks)
         index = build_faiss_index(embeddings)
-
         answers = []
         for question in payload.questions:
             top_chunks = search_faiss_index(index, question, chunks, payload.top_k)

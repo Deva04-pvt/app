@@ -1,11 +1,13 @@
 # app/services/answer_generator.py
 
 import os
+from dotenv import load_dotenv
 from google import generativeai as genai
 
+load_dotenv()
 # It's better to get the API key from environment variables
 # rather than hardcoding it.
-genai.configure(api_key="AIzaSyBSrlvSEPB9_-01qxInJwR7V25iJQ4c4rw")
+genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 def generate_answer(context_chunks: list[str], question: str) -> str:
     """

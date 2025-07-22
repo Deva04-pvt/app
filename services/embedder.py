@@ -1,11 +1,14 @@
 # app/services/embedder.py
 
 import os
+from dotenv import load_dotenv
 from typing import List
 from google import generativeai as genai
 
+load_dotenv()
+
 # Configure the API key
-genai.configure(api_key="AIzaSyBSrlvSEPB9_-01qxInJwR7V25iJQ4c4rw")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_embeddings_gemini(text_chunks: List[str]) -> List[List[float]]:
     """
