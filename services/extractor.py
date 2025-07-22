@@ -17,7 +17,7 @@ from pypdf import PdfReader
 def extract_from_pdf(filepath: str) -> str:
     try:
         output = []
-        reader = PdfReader(f"D:\Books\The_Linux_Command_Line_5th_Edition.pdf")
+        reader = PdfReader(f"{filepath}")
         for page in reader.pages:
             text = page.extract_text()
             output.append(text)
@@ -95,13 +95,13 @@ def extract_text_from_eml(filepath: str) -> str:
 
 # Using a dictionary is cleaner and more extensible than if/elif chains
 EXTRACTORS = {
-    ".pdf": extract_text_from_pdf,
+    ".pdf": extract_from_pdf,
     ".docx": extract_text_from_docx,
     ".eml": extract_text_from_eml,
 }
 
 
-def extract_text(filepath: str, flag: bool) -> str:
+def extract_text(filepath: str) -> str:
     """
     Extracts text from a supported file by dispatching to the correct function.
     """

@@ -131,9 +131,8 @@ async def run_full_pipeline(request: DirectRunRequest):
         # --- PHASE 1: INGESTION AND CHUNKING ---
 
         # Move downloaded file to our temporary directory
-        doc_path = os.path.basename(request.filepath)
 
-        full_text = await run_in_threadpool(extractor.extract_text, doc_path)
+        full_text = await run_in_threadpool(extractor.extract_text, request.filepath)
         if not full_text.strip():
             raise HTTPException(
                 status_code=400, detail="Failed to extract text from the document."
