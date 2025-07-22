@@ -1,59 +1,33 @@
-# app/services/answer_generator.py
+import requests
 
-import os
-from typing import List
-from dotenv import load_dotenv
-import openai
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2-vision"
 
-load_dotenv()
 
-# Configure the API key and optionally a custom base URL (for proxy or Azure OpenAI)
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if os.getenv("OPENAI_API_BASE"):
-    openai.api_base = os.getenv("OPENAI_API_BASE")
+def generate_answer(context_chunks: list[str], question: str) -> str:
+    prompt = f"""
+You are a domain expert tasked with answering questions using the provided document context only.
 
-def generate_answer(context_chunks: List[str], question: str) -> str:
-    """
-    Generates an answer to a question based on provided context chunks using OpenAI's GPT model.
-
-    Args:
-        context_chunks: A list of text strings providing context.
-        question: The question to be answered.
-
-    Returns:
-        The generated answer as a string.
-    """
-    context = "\n".join(context_chunks)
-
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful assistant who answers questions based ONLY on the provided context. "
-                "If the answer is not found in the context, respond with exactly this phrase: "
-                "\"The answer is not available in the provided context.\""
-            )
-        },
-        {
-            "role": "user",
-            "content": f"""
 Context:
----
-{context}
----
+\"\"\"
+{chr(10).join(context_chunks)}
+\"\"\"
 
-Question: {question}
+Question:
+{question}
+
+Instructions:
+- Provide a clear, concise answer based strictly on the context.
+- If the answer is not present in the context, respond with: "Not mentioned in the document."
 """
-        }
-    ]
+
+    payload = {"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",  # or "gpt-3.5-turbo" if cost/speed is a concern
-            messages=messages,
-            temperature=0  # deterministic, factual output
-        )
-        return response["choices"][0]["message"]["content"].strip()
+        response = requests.post(OLLAMA_URL, json=payload, timeout=60)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("response", "").strip()
 
-    except openai.error.OpenAIError as e:
-        raise RuntimeError(f"Failed to generate answer: {str(e)}")
+    except requests.RequestException as e:
+        raise RuntimeError(f"Ollama LLM generation failed: {e}")

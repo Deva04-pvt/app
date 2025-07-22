@@ -1,18 +1,13 @@
-# app/services/embedder.py
-
-import os
-from dotenv import load_dotenv
+import requests
 from typing import List
-from google import generativeai as genai
 
-load_dotenv()
+OLLAMA_EMBEDDING_MODEL = "nomic-embed-text"
+OLLAMA_URL = "http://localhost:11434/api/embeddings"
 
-# Configure the API key
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-def get_embeddings_gemini(text_chunks: List[str]) -> List[List[float]]:
+def get_embeddings(text_chunks: List[str]) -> List[List[float]]:
     """
-    Generates embeddings for a list of text chunks using the Gemini API.
+    Generates embeddings for a list of text chunks using a local Ollama model.
 
     Args:
         text_chunks: A list of strings to be embedded.
@@ -20,16 +15,24 @@ def get_embeddings_gemini(text_chunks: List[str]) -> List[List[float]]:
     Returns:
         A list of embeddings, where each embedding is a list of floats.
     """
-    # Use the correct model for text embeddings
-    model = "models/embedding-001"
-    
-    # Call the embedding model once with all the chunks
-    # The API handles batching internally.
-    result = genai.embed_content(
-        model=model,
-        content=text_chunks,  # Pass the entire list of chunks
-        task_type="retrieval_document",
-        title="Embedding of documents" # Optional but recommended
-    )
+    embeddings = []
 
-    return result["embedding"] if isinstance(result["embedding"][0], list) else [result["embedding"]]
+    for chunk in text_chunks:
+        try:
+            response = requests.post(
+                OLLAMA_URL,
+                json={"model": OLLAMA_EMBEDDING_MODEL, "prompt": chunk},
+                timeout=30,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            if "embedding" in data:
+                embeddings.append(data["embedding"])
+            else:
+                raise ValueError("Embedding not returned in response")
+
+        except requests.RequestException as e:
+            raise RuntimeError(f"Embedding request failed: {e}")
+
+    return embeddings
