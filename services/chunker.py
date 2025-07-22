@@ -1,30 +1,47 @@
 # app/services/chunker.py
+#
+# Required libraries:
+# pip install langchain tiktoken
 
-import re
 from typing import List
-def split_text(text: str, max_length: int = 500, overlap: int = 50) -> List[str]:
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import tiktoken
+
+# --- Tokenizer Setup ---
+# Use the tokenizer that corresponds to modern OpenAI models (e.g., gpt-4, text-embedding-ada-002)
+# This ensures our chunk size is measured exactly as the model sees it.
+TOKENIZER = tiktoken.get_encoding("cl100k_base")
+
+
+def token_length(text: str) -> int:
+    """A helper function to calculate the number of tokens in a string."""
+    return len(TOKENIZER.encode(text))
+
+
+def split_text(
+    text: str, max_tokens: int = 512, overlap_tokens: int = 100
+) -> List[str]:
     """
-    Naive chunking by sentences. Real production setup should use token-aware logic (tiktoken/Tokenizer).
+    Splits text into chunks using a recursive, token-aware strategy.
+
+    Args:
+        text: The input text to be split.
+        max_tokens: The maximum number of tokens allowed in a chunk.
+        overlap_tokens: The number of tokens to overlap between consecutive chunks.
+
+    Returns:
+        A list of text chunks.
     """
-    sentences = re.split(r'(?<=[.!?])\s+', text)
-    chunks = []
-    chunk = ""
+    if not text:
+        return []
 
-    for sentence in sentences:
-        if len(chunk) + len(sentence) <= max_length:
-            chunk += " " + sentence
-        else:
-            chunks.append(chunk.strip())
-            chunk = sentence
+    # --- Text Splitter Initialization ---
+    # This splitter respects semantic boundaries and uses token count for length.
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=max_tokens,
+        chunk_overlap=overlap_tokens,
+        length_function=token_length,
+        separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""],  # Prioritized separators
+    )
 
-    if chunk:
-        chunks.append(chunk.strip())
-
-    # Add overlap between chunks
-    final_chunks = []
-    for i in range(0, len(chunks)):
-        chunk = chunks[i]
-        prev = chunks[i - 1][-overlap:] if i > 0 else ""
-        final_chunks.append(prev + " " + chunk)
-
-    return final_chunks
+    return text_splitter.split_text(text)
