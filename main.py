@@ -12,7 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from services import downloader, extractor, chunker, embedder
 from services import faiss_indexer, retriever, answer_generator
 from services.document_store import DocumentStore
-from schemas import RunRequest, RunResponse
+from schemas import RunRequest, RunResponse, DirectRunRequest
 
 # --- Application Setup ---
 app = FastAPI(
@@ -100,6 +100,86 @@ async def run_full_pipeline(request: RunRequest):
             else:
                 structured_response = await run_in_threadpool(
                     answer_generator.generate_structured_answer, context_chunks, question
+                )
+
+            final_answers.append(
+                structured_response.get("answer", "Failed to generate a valid answer.")
+            )
+
+        return RunResponse(answers=final_answers)
+
+    except Exception as e:
+        # Catch any exception from the pipeline and return a server error
+        print(f"An error occurred during the pipeline execution: {e}")
+        raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
+    finally:
+        # --- CLEANUP ---
+        # Ensure the temporary directory is always removed
+        print(f"Cleaning up temporary directory: {run_temp_dir}")
+        shutil.rmtree(run_temp_dir)
+
+
+@app.post("/hackrx/run/file", response_model=RunResponse)
+async def run_full_pipeline(request: DirectRunRequest):
+    """
+    Orchestrates the entire RAG pipeline from document download to answer generation.
+    """
+    # Create a unique temporary directory for this specific run
+    run_temp_dir = tempfile.mkdtemp(prefix="rag_run_")
+
+    try:
+        # --- PHASE 1: INGESTION AND CHUNKING ---
+
+        # Move downloaded file to our temporary directory
+        doc_path = os.path.basename(request.filepath)
+
+        full_text = await run_in_threadpool(extractor.extract_text, doc_path)
+        if not full_text.strip():
+            raise HTTPException(
+                status_code=400, detail="Failed to extract text from the document."
+            )
+
+        text_chunks = await run_in_threadpool(chunker.split_text, full_text)
+
+        # --- PHASE 2: INDEXING ---
+        print("Starting Phase 2: Indexing")
+        doc_store = DocumentStore(chunks=text_chunks)
+
+        # The embedder is already parallelized internally
+        embeddings = await run_in_threadpool(embedder.get_embeddings, text_chunks)
+        if not embeddings:
+            raise HTTPException(
+                status_code=500, detail="Failed to generate embeddings."
+            )
+
+        # Save the index inside the temporary directory
+        temp_index_path = os.path.join(run_temp_dir, "document.index")
+        await run_in_threadpool(
+            faiss_indexer.build_and_save_index, embeddings, temp_index_path
+        )
+
+        # --- PHASE 3: RETRIEVAL AND GENERATION ---
+        print("Starting Phase 3: Retrieval and Generation")
+        final_answers = []
+        index = faiss_indexer.load_index(temp_index_path)
+
+        for question in request.questions:
+            print(f"Processing question: '{question[:50]}...'")
+            # 1. Retrieve relevant context
+            retrieved_chunks_with_scores = await run_in_threadpool(
+                retriever.search_index, index, doc_store, question
+            )
+            context_chunks = [chunk for chunk, score in retrieved_chunks_with_scores]
+
+            # 2. Generate the answer from the context
+            if not context_chunks:
+                # If no context is found, use a default non-answer
+                structured_response = {"answer": "Not mentioned in the document."}
+            else:
+                structured_response = await run_in_threadpool(
+                    answer_generator.generate_structured_answer,
+                    context_chunks,
+                    question,
                 )
 
             final_answers.append(

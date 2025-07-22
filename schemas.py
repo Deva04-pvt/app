@@ -15,3 +15,7 @@ class RunResponse(BaseModel):
     """Defines the structure of the final JSON response."""
 
     answers: List[str]
+
+class DirectRunRequest(BaseModel):
+    filepath: str
+    questions: List[str]

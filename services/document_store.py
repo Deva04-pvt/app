@@ -32,6 +32,8 @@ class DocumentStore:
             store_instance = cls(chunks=[])
             store_instance._store = {int(k): v for k, v in data.items()}
             return store_instance
+
+
 # app/services/document_store.py
 import json
 from typing import List, Dict

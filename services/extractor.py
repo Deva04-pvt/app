@@ -9,8 +9,22 @@ from docx import Document
 import email
 from email.message import Message
 from bs4 import BeautifulSoup
+from pypdf import PdfReader
 
 # --- Extractor Functions ---
+
+
+def extract_from_pdf(filepath: str) -> str:
+    try:
+        output = []
+        reader = PdfReader(f"D:\Books\The_Linux_Command_Line_5th_Edition.pdf")
+        for page in reader.pages:
+            text = page.extract_text()
+            output.append(text)
+        return "".join(output)
+    except Exception as e:
+        print(f"Error processing PDF {filepath}: {e}")
+        return ""
 
 
 def extract_text_from_pdf(filepath: str) -> str:
@@ -87,7 +101,7 @@ EXTRACTORS = {
 }
 
 
-def extract_text(filepath: str) -> str:
+def extract_text(filepath: str, flag: bool) -> str:
     """
     Extracts text from a supported file by dispatching to the correct function.
     """
