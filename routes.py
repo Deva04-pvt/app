@@ -9,7 +9,7 @@ from services.embedder import get_embeddings_gemini
 from services.faiss_indexer import build_faiss_index
 from services.retriever import search_faiss_index
 from services.answer_generator import generate_answer
-import concurrent.futures
+from typing import List
 import os
 router = APIRouter()
 
@@ -31,7 +31,7 @@ class AnswerRequest(BaseModel):
 
 class QARequest(BaseModel):
     documents: str
-    questions: list[str]
+    questions: List[str]
 
 class QAResponse(BaseModel):
     question: str
@@ -133,7 +133,7 @@ async def answer_endpoint(payload: AnswerRequest):
 
 class BulkQARequest(BaseModel):
     documents: str  # Blob URL
-    questions: list[str]
+    questions: List[str]
     top_k: int = 5
 
 @router.post("/bulk-answer")
