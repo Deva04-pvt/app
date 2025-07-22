@@ -1,17 +1,20 @@
 # app/services/answer_generator.py
 
 import os
+from typing import List
 from dotenv import load_dotenv
-from google import generativeai as genai
+import openai
 
 load_dotenv()
-# It's better to get the API key from environment variables
-# rather than hardcoding it.
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
-def generate_answer(context_chunks: list[str], question: str) -> str:
+# Configure the API key and optionally a custom base URL (for proxy or Azure OpenAI)
+openai.api_key = os.getenv("OPENAI_API_KEY")
+if os.getenv("OPENAI_API_BASE"):
+    openai.api_base = os.getenv("OPENAI_API_BASE")
+
+def generate_answer(context_chunks: List[str], question: str) -> str:
     """
-    Generates an answer to a question based on provided context chunks.
+    Generates an answer to a question based on provided context chunks using OpenAI's GPT model.
 
     Args:
         context_chunks: A list of text strings providing context.
@@ -20,29 +23,37 @@ def generate_answer(context_chunks: list[str], question: str) -> str:
     Returns:
         The generated answer as a string.
     """
-    # Join the context chunks into a single block of text
     context = "\n".join(context_chunks)
 
-    prompt = f"""
-You are a helpful assistant who answers questions based ONLY on the provided context.
-
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant who answers questions based ONLY on the provided context. "
+                "If the answer is not found in the context, respond with exactly this phrase: "
+                "\"The answer is not available in the provided context.\""
+            )
+        },
+        {
+            "role": "user",
+            "content": f"""
 Context:
 ---
 {context}
 ---
 
 Question: {question}
-
-Instructions:
-1.  Read the context carefully.
-2.  Formulate a clear and concise answer based strictly on the information given in the context.
-3.  If the information needed to answer the question is not in the context, you must respond with exactly this phrase: "The answer is not available in the provided context."
 """
+        }
+    ]
 
-    # Initialize the generative model
-    model = genai.GenerativeModel('gemini-1.5-flash') # Using a fast and capable model
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # or "gpt-3.5-turbo" if cost/speed is a concern
+            messages=messages,
+            temperature=0  # deterministic, factual output
+        )
+        return response["choices"][0]["message"]["content"].strip()
 
-    # Generate the content
-    response = model.generate_content(prompt)
-
-    return response.text.strip()
+    except openai.error.OpenAIError as e:
+        raise RuntimeError(f"Failed to generate answer: {str(e)}")
