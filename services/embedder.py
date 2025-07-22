@@ -5,7 +5,7 @@ from typing import List
 from google import generativeai as genai
 
 # Configure the API key
-genai.configure(api_key="AIzaSyBNeeAtc91tx67QxTvmYlCadC--4ZE8i4s")
+genai.configure(api_key="AIzaSyBSrlvSEPB9_-01qxInJwR7V25iJQ4c4rw")
 
 def get_embeddings_gemini(text_chunks: List[str]) -> List[List[float]]:
     """
@@ -29,4 +29,4 @@ def get_embeddings_gemini(text_chunks: List[str]) -> List[List[float]]:
         title="Embedding of documents" # Optional but recommended
     )
 
-    return result["embedding"]
+    return result["embedding"] if isinstance(result["embedding"][0], list) else [result["embedding"]]

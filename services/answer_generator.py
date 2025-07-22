@@ -5,7 +5,7 @@ from google import generativeai as genai
 
 # It's better to get the API key from environment variables
 # rather than hardcoding it.
-genai.configure(api_key="AIzaSyBNeeAtc91tx67QxTvmYlCadC--4ZE8i4s")
+genai.configure(api_key="AIzaSyBSrlvSEPB9_-01qxInJwR7V25iJQ4c4rw")
 
 def generate_answer(context_chunks: list[str], question: str) -> str:
     """

@@ -1,8 +1,8 @@
 # app/services/chunker.py
 
 import re
-
-def split_text(text: str, max_length: int = 500, overlap: int = 50) -> list[str]:
+from typing import List
+def split_text(text: str, max_length: int = 500, overlap: int = 50) -> List[str]:
     """
     Naive chunking by sentences. Real production setup should use token-aware logic (tiktoken/Tokenizer).
     """
