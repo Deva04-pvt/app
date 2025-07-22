@@ -38,9 +38,13 @@ RETRIEVAL_CONFIG = {
 
 # Model Configuration
 MODEL_CONFIG = {
-    "embedding_model": "gemini",     # Embedding model to use
-    "generation_model": "gemini-1.5-flash",  # Text generation model
-    "tokenizer_model": "cl100k_base",        # Tokenizer model for chunking
+    "embedding_provider": "gemini",      # "gemini" or "openai"
+    "generation_provider": "gemini",     # "gemini" or "openai"
+    "embedding_model": "gemini",         # For Gemini embeddings
+    "openai_embedding_model": "text-embedding-ada-002",  # For OpenAI embeddings
+    "generation_model": "gemini-1.5-flash",             # For Gemini generation
+    "openai_generation_model": "gpt-3.5-turbo",         # For OpenAI generation
+    "tokenizer_model": "cl100k_base",                    # Tokenizer model for chunking
 }
 
 def get_chunking_config():
