@@ -136,7 +136,7 @@ class BulkQARequest(BaseModel):
     questions: List[str]
     top_k: int = 5
 
-@router.post("/run")
+@router.post("/hackrx/run")
 async def bulk_answer_endpoint(payload: BulkQARequest):
     try:
         local_path = download_document(payload.documents)
